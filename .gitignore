@@ -1,0 +1,8 @@
+.build/
+.swiftpm/
+DerivedData/
+build/
+*.xcodeproj/
+*.xcworkspace/
+.DS_Store
+AIUsageMonitor.app/
