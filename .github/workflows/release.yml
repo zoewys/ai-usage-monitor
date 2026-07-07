@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test
+        run: swift test
+
+      - name: Build app
+        run: VERSION="${GITHUB_REF_NAME#v}" BUILD_NUMBER="$GITHUB_RUN_NUMBER" scripts/build_app.sh
+
+      - name: Archive app
+        run: |
+          APP_ZIP="build/AIUsageMonitor-${GITHUB_REF_NAME}.zip"
+          ditto -c -k --keepParent build/AIUsageMonitor.app "$APP_ZIP"
+          echo "APP_ZIP=$APP_ZIP" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIUsageMonitor-${{ github.ref_name }}
+          path: ${{ env.APP_ZIP }}
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" "$APP_ZIP" --title "$GITHUB_REF_NAME" --generate-notes

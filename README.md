@@ -6,7 +6,7 @@ P0 展示：
 
 - `Codex 本周剩余` 百分比和重置时间
 - `Codex 5 小时剩余` 百分比和重置时间
-- 菜单栏标题显示 `Codex xx%`，取本周和 5 小时里较低的剩余值
+- 菜单栏标题显示 `Codex: 5 小时剩余 / 本周剩余`
 
 ## 环境要求
 
@@ -33,6 +33,16 @@ swift test
 chmod +x scripts/build_app.sh
 scripts/build_app.sh
 open build/AIUsageMonitor.app
+```
+
+## 发布
+
+推送 `v*` tag 会触发 GitHub Actions 打包，并生成 GitHub Release：
+
+```bash
+git tag v0.1.1
+git push origin main
+git push origin v0.1.1
 ```
 
 ## 说明

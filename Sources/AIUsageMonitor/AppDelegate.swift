@@ -26,14 +26,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        button.title = "Codex --%"
+        button.title = "Codex: --% / --%"
         button.target = self
         button.action = #selector(togglePopover)
     }
 
     private func configurePanel() {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 302.4, height: 306),
+            contentRect: NSRect(x: 0, y: 0, width: 270, height: 205.2),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true
@@ -41,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.level = .statusBar
         panel.isOpaque = false
         panel.backgroundColor = .clear
-        panel.hasShadow = true
+        panel.hasShadow = false
         panel.hidesOnDeactivate = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentViewController = NSHostingController(rootView: MenuBarContentView(store: store))
@@ -67,8 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if panel.isVisible {
             panel.orderOut(nil)
         } else {
-            let height: CGFloat = store.snapshot.errorMessage == nil ? 306 : 360
-            panel.setContentSize(NSSize(width: 302.4, height: height))
+            let height: CGFloat = store.snapshot.errorMessage == nil ? 205.2 : 255.6
+            panel.setContentSize(NSSize(width: 270, height: height))
             let buttonFrameInWindow = button.convert(button.bounds, to: nil)
             let buttonFrameInScreen = buttonWindow.convertToScreen(buttonFrameInWindow)
             positionPanel(panel, below: buttonFrameInScreen)
@@ -101,10 +101,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 private extension UsageSnapshot {
     var menuBarTitle: String {
-        guard let percent = headlineRemainingPercent else {
-            return "Codex --%"
+        "Codex: \(fiveHour.menuBarPercentText) / \(weekly.menuBarPercentText)"
+    }
+}
+
+private extension Optional where Wrapped == UsageBucket {
+    var menuBarPercentText: String {
+        guard let remaining = self?.remainingPercent else {
+            return "--%"
         }
 
-        return "Codex \(Int(percent.rounded()))%"
+        return "\(Int(remaining.rounded()))%"
     }
 }

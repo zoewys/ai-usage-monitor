@@ -84,11 +84,11 @@ public func usageLevel(for remaining: Double?) -> UsageLevel {
         return .unknown
     }
 
-    if remaining < 10 {
+    if remaining < 20 {
         return .critical
     }
 
-    if remaining < 20 {
+    if remaining < 50 {
         return .warning
     }
 
