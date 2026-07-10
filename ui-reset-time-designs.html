@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI 用量监控 · 重置时间设计方案</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page-bg: #eef1f6;
+      --page-surface: rgba(255, 255, 255, 0.78);
+      --page-border: rgba(15, 23, 42, 0.09);
+      --page-text: #172033;
+      --page-secondary: #657087;
+      --page-accent: #5065e8;
+      --page-accent-soft: #e9edff;
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --shadow: 0 22px 70px rgba(49, 58, 91, 0.13);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 880px;
+      color: var(--page-text);
+      background:
+        radial-gradient(circle at 8% -10%, rgba(114, 132, 255, 0.18), transparent 32%),
+        radial-gradient(circle at 92% 4%, rgba(102, 193, 207, 0.14), transparent 30%),
+        var(--page-bg);
+    }
+
+    button { font: inherit; }
+
+    .page-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      background: rgba(246, 248, 252, 0.78);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.07);
+      backdrop-filter: blur(24px) saturate(1.4);
+    }
+
+    .page-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .page-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      color: white;
+      background: linear-gradient(145deg, #6275f0, #4253cf);
+      border-radius: 12px;
+      box-shadow: 0 8px 22px rgba(66, 83, 207, 0.24);
+    }
+
+    .page-mark svg { width: 20px; height: 20px; }
+
+    h1 {
+      margin: 0;
+      font-size: 17px;
+      letter-spacing: -0.2px;
+    }
+
+    .page-subtitle {
+      margin-top: 3px;
+      color: var(--page-secondary);
+      font-size: 12px;
+    }
+
+    .header-note {
+      padding: 7px 10px;
+      color: #40516f;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--page-border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    main {
+      width: min(1120px, calc(100% - 64px));
+      margin: 34px auto 110px;
+    }
+
+    .decision-section {
+      padding: 24px;
+      background: var(--page-surface);
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    .decision-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .decision-header h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.25px;
+    }
+
+    .badge {
+      padding: 5px 8px;
+      color: #4053c8;
+      background: var(--page-accent-soft);
+      border-radius: 7px;
+      font-size: 10px;
+      font-weight: 750;
+      letter-spacing: 0.4px;
+    }
+
+    .decision-desc {
+      max-width: 720px;
+      margin-top: 8px;
+      color: var(--page-secondary);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .option-card {
+      position: relative;
+      overflow: hidden;
+      padding: 16px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.64);
+      border: 1.5px solid rgba(24, 34, 56, 0.09);
+      border-radius: 18px;
+      transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .option-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(80, 101, 232, 0.38);
+      box-shadow: 0 13px 34px rgba(52, 62, 102, 0.11);
+    }
+
+    .option-card.selected {
+      border-color: var(--page-accent);
+      box-shadow: 0 0 0 3px rgba(80, 101, 232, 0.12), 0 15px 36px rgba(52, 62, 102, 0.13);
+    }
+
+    .option-card-header {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .option-radio {
+      position: relative;
+      width: 17px;
+      height: 17px;
+      flex: 0 0 auto;
+      border: 1.5px solid #adb5c7;
+      border-radius: 50%;
+    }
+
+    .selected .option-radio {
+      border-color: var(--page-accent);
+      background: var(--page-accent);
+    }
+
+    .selected .option-radio::after {
+      position: absolute;
+      inset: 4px;
+      content: "";
+      background: white;
+      border-radius: 50%;
+    }
+
+    .option-label {
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .recommended {
+      margin-left: auto;
+      padding: 4px 7px;
+      color: #355c76;
+      background: #e5f4f8;
+      border-radius: 6px;
+      font-size: 9px;
+      font-weight: 750;
+    }
+
+    .option-sublabel {
+      min-height: 38px;
+      margin: 7px 0 14px 26px;
+      color: var(--page-secondary);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .mockup-stage {
+      display: grid;
+      min-height: 320px;
+      place-items: center;
+      padding: 30px 20px;
+      background:
+        linear-gradient(135deg, rgba(237, 241, 248, 0.95), rgba(222, 228, 239, 0.88));
+      border: 1px solid rgba(23, 32, 51, 0.06);
+      border-radius: 14px;
+    }
+
+    .app-popover {
+      width: 310px;
+      min-height: 248px;
+      padding: 16px;
+      color: #182033;
+      background: rgba(250, 251, 253, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      border-radius: 18px;
+      box-shadow:
+        0 24px 50px rgba(44, 53, 77, 0.22),
+        inset 0 0 0 1px rgba(17, 24, 39, 0.035);
+      user-select: none;
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-icon {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      place-items: center;
+      color: #293142;
+      background: #fff;
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 10px;
+      box-shadow: 0 3px 10px rgba(20, 26, 41, 0.08);
+    }
+
+    .app-icon svg { width: 23px; height: 23px; }
+
+    .app-brand {
+      font-size: 13px;
+      font-weight: 750;
+      letter-spacing: -0.1px;
+    }
+
+    .app-status {
+      margin-top: 2px;
+      color: #8790a1;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .app-actions {
+      display: flex;
+      gap: 5px;
+      margin-left: auto;
+    }
+
+    .icon-button {
+      display: grid;
+      width: 27px;
+      height: 27px;
+      place-items: center;
+      color: #596274;
+      background: rgba(30, 41, 59, 0.045);
+      border: 1px solid rgba(30, 41, 59, 0.06);
+      border-radius: 8px;
+    }
+
+    .icon-button svg { width: 13px; height: 13px; }
+
+    /* 方案 A：双卡配额 */
+    .a-popover {
+      --a-blue: #4276d9;
+      --a-blue-soft: #edf4ff;
+      --a-violet: #7b63c9;
+      --a-violet-soft: #f4f0ff;
+    }
+
+    .a-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 15px;
+    }
+
+    .quota-card {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid rgba(43, 55, 80, 0.075);
+      border-radius: 13px;
+    }
+
+    .quota-card.five { background: linear-gradient(145deg, #f6f9ff, var(--a-blue-soft)); }
+    .quota-card.week { background: linear-gradient(145deg, #fbf9ff, var(--a-violet-soft)); }
+
+    .quota-kicker {
+      color: #6e788c;
+      font-size: 9px;
+      font-weight: 650;
+    }
+
+    .quota-percent {
+      margin-top: 4px;
+      font-size: 28px;
+      font-weight: 760;
+      letter-spacing: -1.3px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .five .quota-percent { color: var(--a-blue); }
+    .week .quota-percent { color: var(--a-violet); }
+
+    .time-box {
+      margin-top: 10px;
+      padding-top: 9px;
+      border-top: 1px solid rgba(41, 51, 76, 0.08);
+    }
+
+    .time-label {
+      color: #9097a5;
+      font-size: 8px;
+      font-weight: 650;
+    }
+
+    .time-value {
+      margin-top: 2px;
+      color: #2e3749;
+      font-size: 11px;
+      font-weight: 730;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .time-relative {
+      margin-top: 2px;
+      color: #9aa1af;
+      font-size: 8px;
+      white-space: nowrap;
+    }
+
+    .slim-progress {
+      height: 4px;
+      margin-top: 10px;
+      overflow: hidden;
+      background: rgba(45, 57, 81, 0.08);
+      border-radius: 999px;
+    }
+
+    .slim-progress span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .five .slim-progress span { width: 86%; background: var(--a-blue); }
+    .week .slim-progress span { width: 92%; background: var(--a-violet); }
+
+    .a-footnote {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 11px;
+      color: #9aa1af;
+      font-size: 8px;
+    }
+
+    .a-footnote::before {
+      width: 5px;
+      height: 5px;
+      content: "";
+      background: #71bda8;
+      border-radius: 50%;
+    }
+
+    /* 方案 B：主次层级 */
+    .b-popover {
+      --b-ink: #243047;
+      --b-accent: #5369c8;
+      --b-soft: #eef3ff;
+      min-height: 0;
+      background: rgba(252, 253, 255, 0.97);
+    }
+
+    .level-normal {
+      --level-accent: #3f8f72;
+      --level-soft-start: #f3faf7;
+      --level-soft-end: #e4f4ec;
+      --level-border: rgba(63, 143, 114, 0.14);
+      --level-shadow: rgba(63, 143, 114, 0.09);
+    }
+
+    .level-warning {
+      --level-accent: #bb7622;
+      --level-soft-start: #fffaf0;
+      --level-soft-end: #ffefd2;
+      --level-border: rgba(187, 118, 34, 0.16);
+      --level-shadow: rgba(187, 118, 34, 0.1);
+    }
+
+    .level-critical {
+      --level-accent: #c95656;
+      --level-soft-start: #fff8f8;
+      --level-soft-end: #ffe6e6;
+      --level-border: rgba(201, 86, 86, 0.16);
+      --level-shadow: rgba(201, 86, 86, 0.1);
+    }
+
+    .b-primary {
+      margin-top: 14px;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--level-soft-start), var(--level-soft-end));
+      border: 1px solid var(--level-border);
+      border-radius: 14px;
+      box-shadow: 0 8px 20px var(--level-shadow);
+      transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .b-primary-top {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+    }
+
+    .b-title {
+      color: #7a8497;
+      font-size: 9px;
+      font-weight: 650;
+    }
+
+    .b-percent {
+      margin-top: 2px;
+      color: var(--level-accent);
+      font-size: 30px;
+      font-weight: 750;
+      letter-spacing: -1.5px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      transition: color 180ms ease;
+    }
+
+    .b-time {
+      padding: 6px 8px;
+      text-align: right;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--level-border);
+      border-radius: 9px;
+    }
+
+    .b-time .label {
+      color: #929bad;
+      font-size: 7px;
+      font-weight: 650;
+    }
+
+    .b-time .value {
+      margin-top: 2px;
+      color: #33405a;
+      font-size: 10px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .b-progress {
+      height: 4px;
+      margin-top: 11px;
+      overflow: hidden;
+      background: rgba(83, 105, 200, 0.11);
+      border-radius: 999px;
+    }
+
+    .b-progress span {
+      display: block;
+      width: 86%;
+      height: 100%;
+      background: var(--level-accent);
+      border-radius: inherit;
+      transition: width 220ms ease, background 180ms ease;
+    }
+
+    .b-secondary {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 5px 1px 1px;
+    }
+
+    .b-secondary-main {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .b-secondary-title {
+      color: #6d7688;
+      font-size: 9px;
+      font-weight: 650;
+    }
+
+    .b-secondary-percent {
+      color: var(--level-accent);
+      font-size: 19px;
+      font-weight: 760;
+      letter-spacing: -0.6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .state-preview {
+      margin-top: 12px;
+      padding: 10px;
+      cursor: default;
+      background: rgba(248, 249, 252, 0.76);
+      border: 1px solid rgba(31, 41, 61, 0.07);
+      border-radius: 11px;
+    }
+
+    .state-preview-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: #697386;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .state-preview-hint {
+      color: #9ba2b0;
+      font-size: 8px;
+      font-weight: 500;
+    }
+
+    .state-buttons {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .state-group + .state-group {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(31, 41, 61, 0.07);
+    }
+
+    .state-group-label {
+      color: #727c8e;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .state-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      padding: 7px;
+      color: #626c7f;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(31, 41, 61, 0.08);
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .state-button:hover { background: #fff; }
+
+    .state-button.active {
+      border-color: var(--state-color);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--state-color) 14%, transparent);
+    }
+
+    .state-button.normal { --state-color: #3f8f72; }
+    .state-button.warning { --state-color: #bb7622; }
+    .state-button.critical { --state-color: #c95656; }
+
+    .state-dot {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      background: var(--state-color);
+      border-radius: 50%;
+    }
+
+    .state-name {
+      display: block;
+      font-size: 8px;
+      font-weight: 700;
+    }
+
+    .state-range {
+      display: block;
+      margin-top: 1px;
+      color: #9aa1af;
+      font-size: 7px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .b-secondary-time {
+      text-align: right;
+    }
+
+    .b-secondary-time .label {
+      color: #9ca3af;
+      font-size: 7px;
+      font-weight: 650;
+    }
+
+    .b-secondary-time .value {
+      margin-top: 2px;
+      color: #3e485a;
+      font-size: 9px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .scheme-notes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .scheme-note {
+      padding: 5px 7px;
+      color: #667085;
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid rgba(31, 41, 61, 0.07);
+      border-radius: 7px;
+      font-size: 9px;
+    }
+
+    .summary-bar {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      min-height: 72px;
+      padding: 14px 24px;
+      background: rgba(249, 250, 252, 0.86);
+      border-top: 1px solid rgba(15, 23, 42, 0.08);
+      backdrop-filter: blur(24px) saturate(1.4);
+    }
+
+    .summary-copy {
+      min-width: 150px;
+    }
+
+    .summary-count {
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .summary-choice {
+      margin-top: 3px;
+      color: var(--page-secondary);
+      font-size: 10px;
+    }
+
+    .export-button {
+      padding: 10px 16px;
+      color: white;
+      cursor: pointer;
+      background: linear-gradient(145deg, #6073ec, #4658d2);
+      border: 0;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(70, 88, 210, 0.23);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .export-button:disabled {
+      color: #9299a8;
+      cursor: not-allowed;
+      background: #e5e7ec;
+      box-shadow: none;
+    }
+
+    .toast {
+      position: fixed;
+      right: 24px;
+      bottom: 88px;
+      z-index: 30;
+      padding: 10px 13px;
+      color: white;
+      pointer-events: none;
+      opacity: 0;
+      background: #202838;
+      border-radius: 9px;
+      box-shadow: 0 10px 28px rgba(25, 32, 48, 0.2);
+      font-size: 11px;
+      transform: translateY(8px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .toast.visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 950px) {
+      body { min-width: 680px; }
+      .options-grid { grid-template-columns: 1fr; }
+      main { width: min(620px, calc(100% - 48px)); }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <div class="page-title-wrap">
+      <div class="page-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M5 8.2A4.4 4.4 0 0 1 12.5 5a4.4 4.4 0 0 1 6.3 4.7 4.4 4.4 0 0 1-1.3 7.8A4.4 4.4 0 0 1 10 19a4.4 4.4 0 0 1-6.3-4.7A4.4 4.4 0 0 1 5 8.2Z" />
+          <path d="m8.3 8.2 7.3 4.2v4.1M15.7 15.8 8.4 11.6V7.5M8.4 12.4l3.6-2.1 3.6 2.1" />
+        </svg>
+      </div>
+      <div>
+        <h1>重置时间与配色方案</h1>
+        <div class="page-subtitle">点击一个方案选中；这里只是 HTML 设计稿，不会修改应用。</div>
+      </div>
+    </div>
+    <div class="header-note">基于当前 300 × 228 菜单栏卡片</div>
+  </header>
+
+  <main>
+    <section class="decision-section" data-decision="usage-card">
+      <div class="decision-header">
+        <span class="badge">01 / 卡片</span>
+        <h2>Codex 剩余用量</h2>
+      </div>
+      <div class="decision-desc">
+        两个方案都把“下次重置”改成明确的日期与时刻；倒计时降为辅助信息。B 方案继续按百分比切换状态色：充足为柔和绿色、偏低为琥珀色、紧张为珊瑚红。
+      </div>
+
+      <div class="options-grid">
+        <article class="option-card" data-option="A" data-name="雾蓝双卡" onclick="selectOption(this)">
+          <div class="option-card-header">
+            <div class="option-radio"></div>
+            <span class="option-label">A. 雾蓝双卡</span>
+            <span class="recommended">推荐</span>
+          </div>
+          <div class="option-sublabel">两个额度平级展示，用蓝色和紫色区分周期；扫一眼就能同时看到百分比和重置时刻。</div>
+
+          <div class="mockup-stage">
+            <div class="app-popover a-popover">
+              <div class="app-header">
+                <div class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M5 8.2A4.4 4.4 0 0 1 12.5 5a4.4 4.4 0 0 1 6.3 4.7 4.4 4.4 0 0 1-1.3 7.8A4.4 4.4 0 0 1 10 19a4.4 4.4 0 0 1-6.3-4.7A4.4 4.4 0 0 1 5 8.2Z" />
+                    <path d="m8.3 8.2 7.3 4.2v4.1M15.7 15.8 8.4 11.6V7.5M8.4 12.4l3.6-2.1 3.6 2.1" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="app-brand">Codex</div>
+                  <div class="app-status">用量状态良好 · 刚刚更新</div>
+                </div>
+                <div class="app-actions">
+                  <div class="icon-button" title="刷新">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.3 9A7 7 0 0 0 6.6 6.6L4 11M20 13l-2.6 4.4A7 7 0 0 1 5.7 15"/></svg>
+                  </div>
+                  <div class="icon-button" title="退出">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10M6.4 5.6a8 8 0 1 0 11.2 0"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="a-grid">
+                <div class="quota-card five">
+                  <div class="quota-kicker">5 小时剩余</div>
+                  <div class="quota-percent">86%</div>
+                  <div class="time-box">
+                    <div class="time-label">下次重置</div>
+                    <div class="time-value sample-reset" data-offset-minutes="296">今天 18:40</div>
+                    <div class="time-relative">4 小时 56 分后</div>
+                  </div>
+                  <div class="slim-progress"><span></span></div>
+                </div>
+
+                <div class="quota-card week">
+                  <div class="quota-kicker">本周剩余</div>
+                  <div class="quota-percent">92%</div>
+                  <div class="time-box">
+                    <div class="time-label">下次重置</div>
+                    <div class="time-value sample-reset" data-offset-minutes="9720">7月17日 08:00</div>
+                    <div class="time-relative">6 天 18 小时后</div>
+                  </div>
+                  <div class="slim-progress"><span></span></div>
+                </div>
+              </div>
+              <div class="a-footnote">数据来自本机 Codex 会话</div>
+            </div>
+          </div>
+
+          <div class="scheme-notes">
+            <span class="scheme-note">平级双卡</span>
+            <span class="scheme-note">蓝色 + 紫色</span>
+            <span class="scheme-note">信息更直观</span>
+          </div>
+        </article>
+
+        <article class="option-card selected" data-option="B" data-name="晨雾主次" onclick="selectOption(this)">
+          <div class="option-card-header">
+            <div class="option-radio"></div>
+            <span class="option-label">B. 晨雾主次</span>
+          </div>
+          <div class="option-sublabel">5 小时和本周额度收在同一个浅色框中；本周只保留一行信息，不再单独加底色、外框或分隔线。</div>
+
+          <div class="mockup-stage">
+            <div class="app-popover b-popover">
+              <div class="app-header">
+                <div class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                    <path d="M5 8.2A4.4 4.4 0 0 1 12.5 5a4.4 4.4 0 0 1 6.3 4.7 4.4 4.4 0 0 1-1.3 7.8A4.4 4.4 0 0 1 10 19a4.4 4.4 0 0 1-6.3-4.7A4.4 4.4 0 0 1 5 8.2Z" />
+                    <path d="m8.3 8.2 7.3 4.2v4.1M15.7 15.8 8.4 11.6V7.5M8.4 12.4l3.6-2.1 3.6 2.1" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="app-brand">Codex</div>
+                </div>
+                <div class="app-actions">
+                  <div class="icon-button" title="刷新">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6v5h-5M4 18v-5h5"/><path d="M18.3 9A7 7 0 0 0 6.6 6.6L4 11M20 13l-2.6 4.4A7 7 0 0 1 5.7 15"/></svg>
+                  </div>
+                  <div class="icon-button" title="退出">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10M6.4 5.6a8 8 0 1 0 11.2 0"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="b-primary level-normal">
+                <div class="b-primary-top">
+                  <div>
+                    <div class="b-title">5 小时剩余</div>
+                    <div class="b-percent">86%</div>
+                  </div>
+                  <div class="b-time">
+                    <div class="label">下次重置</div>
+                    <div class="value sample-reset" data-offset-minutes="296">今天 18:40</div>
+                  </div>
+                </div>
+                <div class="b-progress"><span></span></div>
+
+                <div class="b-secondary level-normal">
+                  <div class="b-secondary-main">
+                    <span class="b-secondary-title">本周剩余</span>
+                    <span class="b-secondary-percent">92%</span>
+                  </div>
+                  <div class="b-secondary-time">
+                    <div class="label">下次重置</div>
+                    <div class="value sample-reset" data-offset-minutes="9720">7月17日 08:00</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="scheme-notes">
+            <span class="scheme-note">主次分明</span>
+            <span class="scheme-note">同框双层</span>
+            <span class="scheme-note">百分比状态色</span>
+          </div>
+
+          <div class="state-preview" onclick="event.stopPropagation()">
+            <div class="state-preview-head">
+              <span>两个额度独立状态预览</span>
+              <span class="state-preview-hint">分别点击切换</span>
+            </div>
+            <div class="state-group">
+              <div class="state-group-label">5 小时剩余</div>
+              <div class="state-buttons">
+                <button type="button" class="state-button normal active" aria-pressed="true" onclick="setUsageLevel(event, 'primary', 'normal', 86)">
+                  <span class="state-dot"></span>
+                  <span><span class="state-name">充足 · 86%</span><span class="state-range">≥ 50%</span></span>
+                </button>
+                <button type="button" class="state-button warning" aria-pressed="false" onclick="setUsageLevel(event, 'primary', 'warning', 38)">
+                  <span class="state-dot"></span>
+                  <span><span class="state-name">偏低 · 38%</span><span class="state-range">20–49%</span></span>
+                </button>
+                <button type="button" class="state-button critical" aria-pressed="false" onclick="setUsageLevel(event, 'primary', 'critical', 12)">
+                  <span class="state-dot"></span>
+                  <span><span class="state-name">紧张 · 12%</span><span class="state-range">&lt; 20%</span></span>
+                </button>
+              </div>
+            </div>
+            <div class="state-group">
+              <div class="state-group-label">本周剩余</div>
+              <div class="state-buttons">
+                <button type="button" class="state-button normal active" aria-pressed="true" onclick="setUsageLevel(event, 'secondary', 'normal', 92)">
+                  <span class="state-dot"></span>
+                  <span><span class="state-name">充足 · 92%</span><span class="state-range">≥ 50%</span></span>
+                </button>
+                <button type="button" class="state-button warning" aria-pressed="false" onclick="setUsageLevel(event, 'secondary', 'warning', 34)">
+                  <span class="state-dot"></span>
+                  <span><span class="state-name">偏低 · 34%</span><span class="state-range">20–49%</span></span>
+                </button>
+                <button type="button" class="state-button critical" aria-pressed="false" onclick="setUsageLevel(event, 'secondary', 'critical', 9)">
+                  <span class="state-dot"></span>
+                  <span><span class="state-name">紧张 · 9%</span><span class="state-range">&lt; 20%</span></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div class="summary-bar">
+    <div class="summary-copy">
+      <div class="summary-count" id="summaryCount">已选 1 / 1</div>
+      <div class="summary-choice" id="summaryChoice">当前选择：B. 晨雾主次</div>
+    </div>
+    <button class="export-button" id="exportButton" onclick="exportSelection()">复制选择结果</button>
+  </div>
+  <div class="toast" id="toast">选择结果已复制</div>
+
+  <script>
+    const section = document.querySelector('.decision-section');
+    section.dataset.selected = 'B';
+    section.dataset.selectedName = '晨雾主次';
+
+    function selectOption(card) {
+      section.querySelectorAll('.option-card').forEach(item => item.classList.remove('selected'));
+      card.classList.add('selected');
+      section.dataset.selected = card.dataset.option;
+      section.dataset.selectedName = card.dataset.name;
+      document.getElementById('summaryCount').textContent = '已选 1 / 1';
+      document.getElementById('summaryChoice').textContent = `当前选择：${card.dataset.option}. ${card.dataset.name}`;
+      document.getElementById('exportButton').disabled = false;
+    }
+
+    function setUsageLevel(event, target, level, percent) {
+      event.stopPropagation();
+      const option = event.currentTarget.closest('.option-card');
+      const cardSelector = target === 'primary' ? '.b-primary' : '.b-secondary';
+      const percentSelector = target === 'primary' ? '.b-percent' : '.b-secondary-percent';
+      const usageCard = option.querySelector(cardSelector);
+      const percentLabel = option.querySelector(percentSelector);
+      const progress = target === 'primary' ? option.querySelector('.b-progress span') : null;
+      const stateGroup = event.currentTarget.closest('.state-group');
+
+      selectOption(option);
+      usageCard.classList.remove('level-normal', 'level-warning', 'level-critical');
+      usageCard.classList.add(`level-${level}`);
+      percentLabel.textContent = `${percent}%`;
+      if (progress) progress.style.width = `${percent}%`;
+
+      stateGroup.querySelectorAll('.state-button').forEach(button => {
+        const active = button === event.currentTarget;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    }
+
+    function exportSelection() {
+      const option = section.dataset.selected;
+      const name = section.dataset.selectedName;
+      if (!option) return;
+
+      const markdown = [
+        '## UI 方案选择',
+        '',
+        `- Codex 剩余用量卡片：方案 ${option} — ${name}`,
+        '- 两个额度都显示明确的“下次重置”日期与 HH:mm 时刻',
+        '- 倒计时作为辅助信息，不再作为唯一时间提示',
+        '- 状态色：≥50% 柔和绿色；20–49% 琥珀色；<20% 珊瑚红'
+      ].join('\n');
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(markdown).then(showToast).catch(() => fallbackCopy(markdown));
+      } else {
+        fallbackCopy(markdown);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand('copy');
+      area.remove();
+      showToast();
+    }
+
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.classList.add('visible');
+      setTimeout(() => toast.classList.remove('visible'), 1600);
+    }
+
+    function formatResetTime(date) {
+      const now = new Date();
+      const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startTarget = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const dayDiff = Math.round((startTarget - startToday) / 86400000);
+      const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+
+      if (dayDiff === 0) return `今天 ${time}`;
+      if (dayDiff === 1) return `明天 ${time}`;
+
+      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      return `${date.getMonth() + 1}月${date.getDate()}日 ${weekdays[date.getDay()]} ${time}`;
+    }
+
+    document.querySelectorAll('.sample-reset').forEach(node => {
+      const minutes = Number(node.dataset.offsetMinutes || 0);
+      node.textContent = formatResetTime(new Date(Date.now() + minutes * 60000));
+    });
+  </script>
+</body>
+</html>

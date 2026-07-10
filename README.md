@@ -37,12 +37,12 @@ open build/AIUsageMonitor.app
 
 ## 发布
 
-推送 `v*` tag 会触发 GitHub Actions 打包，并生成 GitHub Release：
+推送 `v*` tag 会触发 GitHub Actions 打包，并生成包含 ZIP 和 DMG 的 GitHub Release。普通用户可以下载 DMG，打开后将应用拖入 Applications：
 
 ```bash
-git tag v0.1.1
 git push origin main
-git push origin v0.1.1
+git tag -a v0.1.2 -m "v0.1.2"
+git push origin v0.1.2
 ```
 
 ## 说明

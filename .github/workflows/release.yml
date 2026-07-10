@@ -22,19 +22,25 @@ jobs:
       - name: Build app
         run: VERSION="${GITHUB_REF_NAME#v}" BUILD_NUMBER="$GITHUB_RUN_NUMBER" scripts/build_app.sh
 
-      - name: Archive app
+      - name: Package release assets
         run: |
-          APP_ZIP="build/AIUsageMonitor-${GITHUB_REF_NAME}.zip"
+          mkdir -p build/releases
+          APP_ZIP="build/releases/AIUsageMonitor-${GITHUB_REF_NAME}.zip"
+          DMG_PATH="build/releases/AIUsageMonitor-${GITHUB_REF_NAME}.dmg"
           ditto -c -k --keepParent build/AIUsageMonitor.app "$APP_ZIP"
+          scripts/build_dmg.sh "${GITHUB_REF_NAME#v}"
           echo "APP_ZIP=$APP_ZIP" >> "$GITHUB_ENV"
+          echo "DMG_PATH=$DMG_PATH" >> "$GITHUB_ENV"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: AIUsageMonitor-${{ github.ref_name }}
-          path: ${{ env.APP_ZIP }}
+          path: |
+            ${{ env.APP_ZIP }}
+            ${{ env.DMG_PATH }}
 
       - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "$GITHUB_REF_NAME" "$APP_ZIP" --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" "$APP_ZIP" "$DMG_PATH" --verify-tag --title "$GITHUB_REF_NAME" --generate-notes

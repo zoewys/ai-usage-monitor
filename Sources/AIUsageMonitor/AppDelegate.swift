@@ -33,7 +33,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configurePanel() {
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 270, height: 205.2),
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: MenuBarPanelMetrics.panelWidth,
+                height: MenuBarPanelMetrics.normalPanelHeight
+            ),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true
@@ -67,8 +72,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if panel.isVisible {
             panel.orderOut(nil)
         } else {
-            let height: CGFloat = store.snapshot.errorMessage == nil ? 205.2 : 255.6
-            panel.setContentSize(NSSize(width: 270, height: height))
+            let height = store.snapshot.errorMessage == nil
+                ? MenuBarPanelMetrics.normalPanelHeight
+                : MenuBarPanelMetrics.errorPanelHeight
+            panel.setContentSize(NSSize(width: MenuBarPanelMetrics.panelWidth, height: height))
             let buttonFrameInWindow = button.convert(button.bounds, to: nil)
             let buttonFrameInScreen = buttonWindow.convertToScreen(buttonFrameInWindow)
             positionPanel(panel, below: buttonFrameInScreen)

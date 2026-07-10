@@ -2,43 +2,63 @@ import AIUsageMonitorCore
 import AppKit
 import SwiftUI
 
-struct MenuBarContentView: View {
-    private static let baseWidth: CGFloat = 300
-    private static let normalBaseHeight: CGFloat = 228
-    private static let errorBaseHeight: CGFloat = 284
-    private static let displayScale: CGFloat = 0.9
+enum MenuBarPanelMetrics {
+    static let baseWidth: CGFloat = 300
+    static let normalBaseHeight: CGFloat = 210
+    static let errorBaseHeight: CGFloat = 284
+    static let displayScale: CGFloat = 0.9
 
+    static var panelWidth: CGFloat {
+        baseWidth * displayScale
+    }
+
+    static var normalPanelHeight: CGFloat {
+        normalBaseHeight * displayScale
+    }
+
+    static var errorPanelHeight: CGFloat {
+        errorBaseHeight * displayScale
+    }
+}
+
+struct MenuBarContentView: View {
     @ObservedObject var store: UsageStore
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             header
-
-            fiveHourBlock
-
-            weeklyCard
+            usageCard
 
             if let errorMessage = store.snapshot.errorMessage {
                 errorBanner(errorMessage)
             }
         }
-        .padding(EdgeInsets(top: 16, leading: 16, bottom: 20, trailing: 16))
-        .frame(width: Self.baseWidth, height: baseHeight, alignment: .topLeading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(16)
+        .frame(
+            width: MenuBarPanelMetrics.baseWidth,
+            height: baseHeight,
+            alignment: .topLeading
+        )
+        .background(
+            Color(red: 0.988, green: 0.992, blue: 1.000),
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(.white.opacity(0.45), lineWidth: 1)
         )
-        .scaleEffect(Self.displayScale, anchor: .topLeading)
+        .scaleEffect(MenuBarPanelMetrics.displayScale, anchor: .topLeading)
         .frame(
-            width: Self.baseWidth * Self.displayScale,
-            height: baseHeight * Self.displayScale,
+            width: MenuBarPanelMetrics.panelWidth,
+            height: baseHeight * MenuBarPanelMetrics.displayScale,
             alignment: .topLeading
         )
     }
 
     private var baseHeight: CGFloat {
-        store.snapshot.errorMessage == nil ? Self.normalBaseHeight : Self.errorBaseHeight
+        store.snapshot.errorMessage == nil
+            ? MenuBarPanelMetrics.normalBaseHeight
+            : MenuBarPanelMetrics.errorBaseHeight
     }
 
     private var header: some View {
@@ -64,15 +84,9 @@ struct MenuBarContentView: View {
                     .stroke(Color.black.opacity(0.06), lineWidth: 1)
             )
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(fiveHourHeadline)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    .textCase(.none)
-                Text("Codex")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.primary)
-            }
+            Text("Codex")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.primary)
 
             Spacer()
 
@@ -92,74 +106,74 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var fiveHourHeadline: String {
-        guard store.snapshot.fiveHour != nil else {
-            return store.snapshot.errorMessage == nil ? "读取中" : "暂无数据"
-        }
-        return "5 小时剩余"
-    }
+    private var usageCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("5 小时剩余")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
 
-    private var fiveHourBlock: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(store.snapshot.fiveHour.percentText)
-                    .font(.system(size: 30, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(fiveHourTint)
+                    Text(store.snapshot.fiveHour.percentText)
+                        .font(.system(size: 30, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(fiveHourLevel.tint)
+                }
 
-                Spacer()
+                Spacer(minLength: 8)
 
-                ResetLabel(resetsAt: store.snapshot.fiveHour?.resetsAt)
+                ResetTimeBlock(
+                    resetsAt: store.snapshot.fiveHour?.resetsAt,
+                    compact: false
+                )
             }
 
-            ProgressBar(value: fiveHourProgress, tint: fiveHourTint)
-        }
-    }
+            ProgressBar(value: fiveHourProgress, tint: fiveHourLevel.tint)
+                .padding(.top, 10)
 
-    private var weeklyCard: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("本周剩余")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
+            HStack(alignment: .bottom, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("本周剩余")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
 
-                Spacer()
+                    Text(store.snapshot.weekly.percentText)
+                        .font(.system(size: 20, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(weeklyLevel.tint)
+                }
 
-                Text(store.snapshot.weekly.percentText)
-                    .font(.system(size: 20, weight: .bold))
-                    .monospacedDigit()
-                    .foregroundStyle(weeklyTint)
+                Spacer(minLength: 8)
+
+                ResetTimeBlock(
+                    resetsAt: store.snapshot.weekly?.resetsAt,
+                    compact: true
+                )
             }
-
-            ResetLabel(resetsAt: store.snapshot.weekly?.resetsAt, compact: true)
-
-            ProgressBar(value: weeklyProgress, tint: weeklyTint)
+            .padding(.top, 12)
         }
-        .padding(11)
+        .padding(13)
         .background(
-            Color.primary.opacity(0.03),
-            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            fiveHourLevel.cardGradient,
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.black.opacity(0.04), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(fiveHourLevel.cardBorder, lineWidth: 1)
         )
+        .shadow(color: fiveHourLevel.cardShadow, radius: 10, y: 4)
     }
 
-    private var fiveHourTint: Color {
-        usageLevel(for: store.snapshot.fiveHour?.remainingPercent).tint
+    private var fiveHourLevel: UsageLevel {
+        usageLevel(for: store.snapshot.fiveHour?.remainingPercent)
     }
 
-    private var weeklyTint: Color {
-        usageLevel(for: store.snapshot.weekly?.remainingPercent).tint
+    private var weeklyLevel: UsageLevel {
+        usageLevel(for: store.snapshot.weekly?.remainingPercent)
     }
 
     private var fiveHourProgress: Double {
         progressValue(for: store.snapshot.fiveHour?.remainingPercent)
-    }
-
-    private var weeklyProgress: Double {
-        progressValue(for: store.snapshot.weekly?.remainingPercent)
     }
 
     private func progressValue(for remaining: Double?) -> Double {
@@ -203,10 +217,13 @@ private struct GlassIconButton: View {
             Image(systemName: systemImage)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 24, height: 24)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .frame(width: 27, height: 27)
+                .background(
+                    Color.primary.opacity(0.04),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(Color.black.opacity(0.05), lineWidth: 1)
                 )
         }
@@ -224,35 +241,50 @@ private struct ProgressBar: View {
             ZStack(alignment: .leading) {
                 Capsule()
                     .fill(Color.primary.opacity(0.07))
-                    .shadow(color: Color.primary.opacity(0.04), radius: 1, y: 0.5)
                 Capsule()
                     .fill(tint)
                     .frame(width: max(0, proxy.size.width * value))
-                    .shadow(color: tint.opacity(0.35), radius: 4, y: 0)
             }
         }
-        .frame(height: 5)
+        .frame(height: 4)
     }
 }
 
-private struct ResetLabel: View {
+private struct ResetTimeBlock: View {
     let resetsAt: Date?
-    var compact: Bool = false
+    let compact: Bool
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.system(size: compact ? 9 : 10, weight: .semibold))
-            Text(text)
-                .lineLimit(1)
+        if compact {
+            content
+        } else {
+            content
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(
+                    Color.white.opacity(0.70),
+                    in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(Color.primary.opacity(0.06), lineWidth: 1)
+                )
         }
-        .font(.system(size: compact ? 10 : 11, weight: .medium))
-        .foregroundStyle(.tertiary)
     }
 
-    private var text: String {
-        guard let resetsAt else { return "重置 --" }
-        return "重置 \(resetsAt.resetDurationLabel)"
+    private var content: some View {
+        VStack(alignment: .trailing, spacing: 2) {
+            Text("下次重置")
+                .font(.system(size: compact ? 8 : 9, weight: .semibold))
+                .foregroundStyle(.tertiary)
+
+            Text(ResetTimeFormatter.label(for: resetsAt))
+                .font(.system(size: compact ? 9 : 10, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
     }
 }
 
@@ -260,13 +292,66 @@ private extension UsageLevel {
     var tint: Color {
         switch self {
         case .normal:
-            return Color(red: 0.302, green: 0.678, blue: 0.478)
+            return Color(red: 0.247, green: 0.561, blue: 0.447)
         case .warning:
-            return Color(red: 0.831, green: 0.576, blue: 0.251)
+            return Color(red: 0.733, green: 0.463, blue: 0.133)
         case .critical:
-            return Color(red: 0.788, green: 0.361, blue: 0.361)
+            return Color(red: 0.788, green: 0.337, blue: 0.337)
         case .unknown:
             return Color(nsColor: .secondaryLabelColor)
+        }
+    }
+
+    var cardGradient: LinearGradient {
+        let colors: [Color]
+
+        switch self {
+        case .normal:
+            colors = [
+                Color(red: 0.953, green: 0.980, blue: 0.969),
+                Color(red: 0.894, green: 0.957, blue: 0.925)
+            ]
+        case .warning:
+            colors = [
+                Color(red: 1.000, green: 0.980, blue: 0.941),
+                Color(red: 1.000, green: 0.937, blue: 0.824)
+            ]
+        case .critical:
+            colors = [
+                Color(red: 1.000, green: 0.973, blue: 0.973),
+                Color(red: 1.000, green: 0.902, blue: 0.902)
+            ]
+        case .unknown:
+            colors = [
+                Color(red: 0.965, green: 0.969, blue: 0.976),
+                Color(red: 0.941, green: 0.949, blue: 0.961)
+            ]
+        }
+
+        return LinearGradient(
+            colors: colors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var cardBorder: Color {
+        switch self {
+        case .normal:
+            return tint.opacity(0.14)
+        case .warning, .critical:
+            return tint.opacity(0.16)
+        case .unknown:
+            return Color.primary.opacity(0.06)
+        }
+    }
+
+    var cardShadow: Color {
+        switch self {
+        case .normal, .warning, .critical:
+            return tint.opacity(0.09)
+        case .unknown:
+            return Color.clear
         }
     }
 }
@@ -277,36 +362,5 @@ private extension Optional where Wrapped == UsageBucket {
             return "--%"
         }
         return "\(Int(remaining.rounded()))%"
-    }
-}
-
-private extension Date {
-    var resetDurationLabel: String {
-        let seconds = max(0, Int(timeIntervalSinceNow))
-
-        if seconds < 60 {
-            return "即将"
-        }
-
-        let minutes = seconds / 60
-        if minutes < 60 {
-            return "\(minutes) 分钟"
-        }
-
-        let hours = minutes / 60
-        let remainingMinutes = minutes % 60
-        if hours < 24 {
-            if remainingMinutes > 0 {
-                return "\(hours) 小时 \(remainingMinutes) 分"
-            }
-            return "\(hours) 小时"
-        }
-
-        let days = hours / 24
-        let remainingHours = hours % 24
-        if remainingHours > 0 {
-            return "\(days) 天 \(remainingHours) 小时"
-        }
-        return "\(days) 天"
     }
 }
